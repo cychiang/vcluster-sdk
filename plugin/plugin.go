@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 const (
@@ -225,6 +226,7 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 		Cache: cache.Options{
 			DefaultNamespaces: map[string]cache.Config{virtualClusterOptions.TargetNamespace: {}},
 		},
+		Metrics: server.Options{BindAddress: "0"},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "create phyiscal manager")
@@ -234,6 +236,7 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 		LeaderElection: false,
 		NewClient:      opts.NewClient,
 		NewCache:       opts.NewCache,
+		Metrics:        server.Options{BindAddress: "0"},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "create virtual manager")
