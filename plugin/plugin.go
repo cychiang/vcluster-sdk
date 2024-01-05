@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/loft-sh/vcluster-sdk/clienthelper"
 	"github.com/loft-sh/vcluster-sdk/hook"
@@ -26,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 const (
@@ -150,7 +152,8 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 
 	log.Infof("Try creating context...")
 	var pluginContext *remote.Context
-	err := wait.PollUntilContextCancel(m.context.Context, time.Second*5, true, func(_ context.Context) (done bool, err error) {
+	ctx := context.Background()
+	err := wait.PollUntilContextCancel(ctx, time.Second*5, true, func(_ context.Context) (done bool, err error) {
 		conn, err := grpc.Dial(m.address, grpc.WithInsecure())
 		if err != nil {
 			return false, nil
@@ -223,6 +226,7 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 		Cache: cache.Options{
 			DefaultNamespaces: map[string]cache.Config{virtualClusterOptions.TargetNamespace: {}},
 		},
+		Metrics: server.Options{BindAddress: "0"},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "create phyiscal manager")
@@ -232,6 +236,7 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 		LeaderElection: false,
 		NewClient:      opts.NewClient,
 		NewCache:       opts.NewCache,
+		Metrics:        server.Options{BindAddress: "0"},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "create virtual manager")
@@ -242,7 +247,7 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 	}
 
 	m.context = &synccontext.RegisterContext{
-		Context:                context.Background(),
+		Context:                ctx,
 		Options:                virtualClusterOptions,
 		TargetNamespace:        pluginContext.TargetNamespace,
 		CurrentNamespace:       pluginContext.CurrentNamespace,
@@ -645,6 +650,10 @@ func newCurrentNamespaceClient(ctx context.Context, currentNamespace string, loc
 			}
 		}()
 		currentNamespaceCache.WaitForCacheSync(ctx)
+	}
+
+	if opts.NewClient == nil {
+		opts.NewClient = client.New
 	}
 
 	// create a current namespace client

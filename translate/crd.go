@@ -68,7 +68,7 @@ func EnsureCRDFromPhysicalCluster(ctx context.Context, pConfig *rest.Config, vCo
 
 	// wait for crd to become ready
 	log.NewWithoutName().Infof("Wait for crd %s to become ready in virtual cluster", groupVersionKind.String())
-	err = wait.ExponentialBackoffWithContext(ctx, wait.Backoff{Duration: time.Second, Factor: 1.5, Cap: time.Minute, Steps: math.MaxInt32}, func() (bool, error) {
+	err = wait.ExponentialBackoffWithContext(ctx, wait.Backoff{Duration: time.Second, Factor: 1.5, Cap: time.Minute, Steps: math.MaxInt32}, func(ctx context.Context) (bool, error) {
 		crdDefinition, err := vClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, groupVersionResource.GroupResource().String(), metav1.GetOptions{})
 		if err != nil {
 			return false, errors.Wrap(err, "retrieve crd in virtual cluster")
@@ -99,7 +99,7 @@ func EnsureCRDFromFile(ctx context.Context, config *rest.Config, crdFilePath str
 	}
 
 	log.NewWithoutName().Infof("Create crd %s in virtual cluster", groupVersionKind.String())
-	err = wait.ExponentialBackoffWithContext(ctx, wait.Backoff{Duration: time.Second, Factor: 1.5, Cap: 5 * time.Minute, Steps: math.MaxInt32}, func() (bool, error) {
+	err = wait.ExponentialBackoffWithContext(ctx, wait.Backoff{Duration: time.Second, Factor: 1.5, Cap: 5 * time.Minute, Steps: math.MaxInt32}, func(ctx context.Context) (bool, error) {
 		err := applier.ApplyManifestFile(config, crdFilePath)
 		if err != nil {
 			log.NewWithoutName().Infof("Failed to apply CRD %s from the manifest file %s: %v", groupVersionKind.String(), crdFilePath, err)
@@ -113,7 +113,7 @@ func EnsureCRDFromFile(ctx context.Context, config *rest.Config, crdFilePath str
 
 	var lastErr error
 	log.NewWithoutName().Infof("Wait for crd %s to become ready in virtual cluster", groupVersionKind.String())
-	err = wait.ExponentialBackoffWithContext(ctx, wait.Backoff{Duration: time.Second, Factor: 1.5, Cap: time.Minute, Steps: math.MaxInt32}, func() (bool, error) {
+	err = wait.ExponentialBackoffWithContext(ctx, wait.Backoff{Duration: time.Second, Factor: 1.5, Cap: time.Minute, Steps: math.MaxInt32}, func(ctx context.Context) (bool, error) {
 		var found bool
 		found, lastErr = KindExists(config, groupVersionKind)
 		return found, nil
