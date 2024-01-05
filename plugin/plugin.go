@@ -652,6 +652,10 @@ func newCurrentNamespaceClient(ctx context.Context, currentNamespace string, loc
 		currentNamespaceCache.WaitForCacheSync(ctx)
 	}
 
+	if opts.NewClient == nil {
+		opts.NewClient = client.New
+	}
+
 	// create a current namespace client
 	return opts.NewClient(localManager.GetConfig(), client.Options{
 		Scheme: localManager.GetScheme(),
