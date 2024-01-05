@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"os"
 	"sync"
 	"time"
+
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/loft-sh/vcluster-sdk/clienthelper"
 	"github.com/loft-sh/vcluster-sdk/hook"
@@ -150,7 +151,8 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 
 	log.Infof("Try creating context...")
 	var pluginContext *remote.Context
-	err := wait.PollUntilContextCancel(m.context.Context, time.Second*5, true, func(_ context.Context) (done bool, err error) {
+	ctx := context.Background()
+	err := wait.PollUntilContextCancel(ctx, time.Second*5, true, func(_ context.Context) (done bool, err error) {
 		conn, err := grpc.Dial(m.address, grpc.WithInsecure())
 		if err != nil {
 			return false, nil
@@ -242,7 +244,7 @@ func (m *manager) InitWithOptions(opts Options) (*synccontext.RegisterContext, e
 	}
 
 	m.context = &synccontext.RegisterContext{
-		Context:                context.Background(),
+		Context:                ctx,
 		Options:                virtualClusterOptions,
 		TargetNamespace:        pluginContext.TargetNamespace,
 		CurrentNamespace:       pluginContext.CurrentNamespace,
